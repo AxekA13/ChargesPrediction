@@ -2,12 +2,9 @@ import pandas as pd
 import numpy as np
 import seaborn as sn
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from sklearn.ensemble import ExtraTreesRegressor
-from sklearn.feature_selection import RFE,RFECV
-from sklearn.linear_model import LogisticRegression
 import statsmodels.api as sm
-
+from sklearn.linear_model import LassoCV
 
 # Read dataset
 data_frame = pd.read_csv('dataset/insurance.csv')
@@ -35,7 +32,6 @@ for col in plot_data.columns:
         print('created missing indicator for: {}'.format(col))
         plot_data['{}_ismissing'.format(col)] = missing
 
-
 # Plot histogram with missing data
 ismissing_cols = [col for col in plot_data.columns if 'ismissing' in col]
 plot_data['num_missing'] = plot_data[ismissing_cols].sum(axis=1)
@@ -45,12 +41,12 @@ plt.show()
 # Print percentage of missing data by feature
 for col in plot_data.columns:
     pct_missing = np.mean(plot_data[col].isnull())
-    print('{} - {}%'.format(col, round(pct_missing*100)))
-print('-'*8)
+    print('{} - {}%'.format(col, round(pct_missing * 100)))
+print('-' * 8)
 # Plot boxplot
 plot_data.boxplot(column=['bmi'])
 plt.show()
-sn.boxplot(x=['charges'],data=plot_data)
+sn.boxplot(x=['charges'], data=plot_data)
 plt.show()
 
 # Search for uninformative features
@@ -67,13 +63,11 @@ for col in plot_data.columns:
         print(cnts)
         print()
 
-
 # Search important features with ExtraTrees and Backward Elimination
 
 array = plot_data.values
 X = array[:, 0:5]
 Y = array[:, 6]
-
 
 model = ExtraTreesRegressor()
 model.fit(X, Y)
@@ -81,27 +75,25 @@ print(plot_data.columns)
 print(model.feature_importances_)
 
 # Backward Elimination
-X = plot_data.drop('charges',1
-)
+X = plot_data.drop('charges', 1
+                   )
 Y = plot_data['charges']
 cols = list(X.columns)
 pmax = 1
-while (len(cols)>0):
-    p= []
+while (len(cols) > 0):
+    p = []
     X_1 = X[cols]
     X_1 = sm.add_constant(X_1)
-    model = sm.OLS(Y,X_1).fit()
-    p = pd.Series(model.pvalues.values[1:],index = cols)
+    model = sm.OLS(Y, X_1).fit()
+    p = pd.Series(model.pvalues.values[1:], index=cols)
     pmax = max(p)
     feature_with_p_max = p.idxmax()
-    if(pmax>0.1):
+    if (pmax > 0.1):
         cols.remove(feature_with_p_max)
     else:
         break
 selected_features_BE = cols
 print(selected_features_BE)
-
-
 
 # Transform labels to category with OneHotEncoder
 data_frame_category = data_frame.copy()
@@ -114,13 +106,11 @@ data_frame = data_frame.drop(['sex', 'region', 'smoker'], axis=1)
 # Result encoded dataset
 data_encoded = pd.concat([data_frame, data_label_encoded], axis=1)
 
-
 # Search important features with ExtraTrees and Backward Elimination for OneHotEncoder
 
 Y = data_encoded['charges']
-X = data_encoded.drop('charges',1)
+X = data_encoded.drop('charges', 1)
 X = X.values
-
 
 model = ExtraTreesRegressor()
 model.fit(X, Y)
@@ -136,20 +126,37 @@ plt.show()
 # Backward Elimination for OneHotEncoder
 
 Y = data_encoded['charges']
-X = data_encoded.drop('charges',1)
+X = data_encoded.drop('charges', 1)
 cols = list(X.columns)
 pmax = 1
-while (len(cols)>0):
-    p= []
+while (len(cols) > 0):
+    p = []
     X_1 = X[cols]
     X_1 = sm.add_constant(X_1)
-    model = sm.OLS(Y,X_1).fit()
-    p = pd.Series(model.pvalues.values[1:],index = cols)
+    model = sm.OLS(Y, X_1).fit()
+    p = pd.Series(model.pvalues.values[1:], index=cols)
     pmax = max(p)
     feature_with_p_max = p.idxmax()
-    if(pmax>0.1):
+    if (pmax > 0.1):
         cols.remove(feature_with_p_max)
     else:
         break
 selected_features_BE = cols
 print(selected_features_BE)
+
+# Embedded Method
+
+reg = LassoCV()
+reg.fit(X, Y)
+print("Best alpha using built-in LassoCV: %f" % reg.alpha_)
+print("Best score using built-in LassoCV: %f" % reg.score(X, Y))
+coef = pd.Series(reg.coef_, index=X.columns)
+
+print(
+    "Lasso picked " + str(sum(coef != 0)) + " variables and eliminated the other " + str(sum(coef == 0)) + " variables")
+imp_coef = coef.sort_values()
+import matplotlib
+matplotlib.rcParams['figure.figsize'] = (8.0, 10.0)
+imp_coef.plot(kind = "barh")
+plt.title("Feature importance using Lasso Model")
+plt.show()
