@@ -48,49 +48,61 @@ data_encoded = pd.concat([data_frame, data_label_encoded], axis=1)
 scaler = RobustScaler()
 
 Y = data_encoded['charges']
-data_encoded = data_encoded.drop(columns=['charges','sex_female', 'sex_male', 'region_northeast',
-      'region_northwest', 'region_southeast', 'region_southwest','children'], axis=1)
+data_encoded = data_encoded.drop(columns=['charges', ], axis=1)
 print(data_encoded.columns)
 y = Y.values.reshape(-1, 1)
 X_scal = data_encoded[['age', 'bmi']]
-X_not_scal = data_encoded[['smoker_no',
-      'smoker_yes']]
+X_not_scal = data_encoded[['children', 'sex_female', 'sex_male', 'region_northeast',
+                           'region_northwest', 'region_southeast', 'region_southwest', 'smoker_no',
+                           'smoker_yes']]
 scaler.fit_transform(X_scal, y)
 X = np.concatenate((X_scal, X_not_scal), axis=1)
 X = data_encoded
+
 # Divide the data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=50)
 
-
-
+print('Linear regression')
 # Linear regression
 linear_regressor = LinearRegression()
 linear_regressor.fit(X_train, y_train)
 y_pred = linear_regressor.predict(X_test)
 
 # Print actual and predicted and plot it
-graphics_plot(y_test, y_pred, 'Linear Regression with 3 columns')
+graphics_plot(y_test, y_pred, 'Linear Regression')
+print('-' * 10)
 
+print('Decision Tree')
 # Decision Tree
-decision_regressor = DecisionTreeRegressor(random_state=1,criterion='mae')
+decision_regressor = DecisionTreeRegressor(random_state=0, criterion='mae')
 decision_regressor.fit(X_train, y_train)
 y_pred = decision_regressor.predict(X_test)
 
 # Print actual and predicted and plot it
-graphics_plot(y_test,y_pred,'DecisionTree Regressor with 3 columns')
+graphics_plot(y_test, y_pred, 'DecisionTree Regressor')
+print('IMPORTANCE FEATURES DTREE',decision_regressor.feature_importances_)
+print(X_train.columns)
+print('-' * 10)
 
 
+
+print('XGBoost')
 xgb_regressor = xgb.XGBRegressor(colsample_bytree=0.4,
-                                      gamma=0,
-                                      learning_rate=0.07,
-                                      max_depth=2,
-                                      min_child_weight=1.5,
-                                      n_estimators=1000,
-                                      reg_alpha=0.75,
-                                      reg_lambda=0.45,
-                                      subsample=0.6,
-                                      seed=42)
+                                 gamma=0,
+                                 learning_rate=0.07,
+                                 max_depth=2,
+                                 min_child_weight=1.5,
+                                 n_estimators=1000,
+                                 reg_alpha=0.75,
+                                 reg_lambda=0.45,
+                                 subsample=0.6,
+                                 seed=42)
 
 xgb_regressor.fit(X_train, y_train)
 y_pred = xgb_regressor.predict(X_test)
-graphics_plot(y_test, y_pred, 'XGBoost with 3 columns')
+graphics_plot(y_test, y_pred, 'XGBoost')
+print('IMPORTANT FEATURE XGBoost')
+print(xgb_regressor.get_booster().get_score(importance_type='gain'))
+xgb.plot_importance(xgb_regressor)
+plt.title('XGBoost Important Features')
+plt.show()
