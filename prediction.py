@@ -57,7 +57,7 @@ X_not_scal = data_encoded[['children', 'sex_female', 'sex_male', 'region_northea
                            'smoker_yes']]
 scaler.fit_transform(X_scal, y)
 X = np.concatenate((X_scal, X_not_scal), axis=1)
-X = data_encoded
+
 
 # Divide the data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=50)
@@ -81,7 +81,6 @@ y_pred = decision_regressor.predict(X_test)
 # Print actual and predicted and plot it
 graphics_plot(y_test, y_pred, 'DecisionTree Regressor')
 print('IMPORTANCE FEATURES DTREE',decision_regressor.feature_importances_)
-print(X_train.columns)
 print('-' * 10)
 
 
